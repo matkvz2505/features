@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  namespace: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:latest
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value:
+            - name: MYSQL_PASSWORD
+              value:
+            - name: MYSQL_USER
+              value:
+            - name: MYSQL_USER_ROOT
+              value:
+            - name: MYSQL_HOST
+              value:
+              
+      #     volumeMounts:
+      #       - name: mysql-pv
+      #         mountPath: /var/lib/mysql
+      # volumes:
+      #   - name: mysql-pv
+      #     persistentVolumeClaim:
+      #       claimName: mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+# kind: StorageClass
+# apiVersion: storage.k8s.io/v1
+# metadata:
+#   name: gp2
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "false"
+# provisioner: kubernetes.io/aws-ebs
+# parameters:
+#   type: gp2
+#   fsType: ext4
+# ---

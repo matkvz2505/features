@@ -1,0 +1,18 @@
+{
+  "name": "rabbitmq-cron-ebs",
+  "version": "1.0.0",
+  "main": "server.js",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1377.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "fs-extra": "^11.1.1",
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.2",
+    "nodemon": "^2.0.22"
+  },
+  "scripts": {
+    "start": "npx nodemon server.js"
+  }
+}

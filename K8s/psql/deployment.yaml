@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - image: bitnami/postgresql:14
+        name: postgres
+        ports:
+          - containerPort: 5432
+        env:
+        - name: POSTGRESQL_MASTER_HOST
+          value: postgres.postgresql.svc.cluster.local
+        - name: POSTGRESQL_USER
+          value: postgres
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-secret
+              key: postgresql-password
+        volumeMounts:
+            - name: secret-db-postgres
+              mountPath: /tmp/schema-init
+            - name: postgres-pv
+              mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: secret-db-postgres
+        secret:
+          secretName: secret-db-postgres
+      - name: postgres-pv
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: gp2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2

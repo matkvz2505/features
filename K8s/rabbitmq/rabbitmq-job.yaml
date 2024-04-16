@@ -1,0 +1,82 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: rabbitmq-backup
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: rabbitmq-backup
+              image: rabbitmq:3.8-management-alpine
+              env:
+                - name: RABBITMQ_HOST
+                  value: rabbitmq.rabbitmq.svc.cluster.local
+                - name: RABBITMQ_PORT
+                  value: "5672"
+                - name: RABBITMQ_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: rabbitmq-secret
+                      key: rabbitmq-user
+                - name: RABBITMQ_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rabbitmq-secret
+                      key: rabbitmq-password
+              command:
+                - "/bin/sh"
+                - "-c"
+                - |
+                  rabbitmqctl -l -n rabbit@$RABBITMQ_HOST stop_app
+                  rabbitmqctl -l -n rabbit@$RABBITMQ_HOST export_definitions > /var/lib/rabbitmq/rabbitmq-backup.dump
+                  rabbitmqctl -l -n rabbit@$RABBITMQ_HOST list_queues > /var/lib/rabbitmq/queues.txt
+                  rabbitmqctl -l -n rabbit@$RABBITMQ_HOST start_app
+                  gzip /var/lib/rabbitmq/rabbitmq-backup.dump
+              volumeMounts:
+                - name: persistent-volume-backup
+                  mountPath: /var/lib/rabbitmq
+          restartPolicy: Never
+          volumes:
+            - name: persistent-volume-backup
+              # persistentVolumeClaim:
+              #   claimName: rabbitmq-backup
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ra-backup
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  fsType: ext4 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: persistent-volume-backup
+spec:
+  capacity:
+   storage: 10Gi
+  accessModes:
+   - ReadWriteOnce
+  hostPath:
+    path: "/var/lib/rabbitmq"
+  storageClassName: ra-backup
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: rabbitmq-backup
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "false"
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 1Gi
